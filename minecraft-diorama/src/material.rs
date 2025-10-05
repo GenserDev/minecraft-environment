@@ -19,7 +19,7 @@ impl Texture {
     
     pub fn get_color(&self, u: f64, v: f64) -> [u8; 3] {
         let u = u.clamp(0.0, 1.0);
-        let v = 1.0 - v.clamp(0.0, 1.0); // Invertir V
+        let v = 1.0 - v.clamp(0.0, 1.0);
         
         let width = self.image.width();
         let height = self.image.height();
@@ -34,7 +34,7 @@ impl Texture {
 
 #[derive(Clone)]
 pub struct Material {
-    pub textures: [Option<Texture>; 6], // Top, Bottom, North, South, East, West
+    pub textures: [Option<Texture>; 6],
     pub reflectivity: f64,
     pub transparency: f64,
     pub refractive_index: f64,
@@ -88,51 +88,37 @@ impl Material {
     }
 }
 
-// ===== MATERIALES QUE USAS EN TU PROYECTO =====
-
-// P - Piedra (Stone)
 pub fn create_stone_material() -> Material {
     Material::new([128, 128, 128])
         .with_all_textures("textures/stone.png")
 }
 
-// T - Tierra (Dirt)
 pub fn create_dirt_material() -> Material {
-    Material::new([139, 90, 43])
-        .with_all_textures("textures/dirt.png")
+    Material::new([34, 139, 34])
+        .with_texture(0, "textures/grass_top.png")
+        .with_texture(1, "textures/dirt.png")
+        .with_texture(2, "textures/grass_side.png")
+        .with_texture(3, "textures/grass_side.png")
+        .with_texture(4, "textures/grass_side.png")
+        .with_texture(5, "textures/grass_side.png")
 }
 
-// M - Madera (Wood)
 pub fn create_wood_material() -> Material {
     Material::new([139, 90, 43])
-        .with_all_textures("textures/wood.png")
+        // .with_all_textures("textures/wood.png")
 }
 
-// H - Hojas (Leaves)
 pub fn create_leaves_material() -> Material {
     Material::new([34, 139, 34])
         .with_all_textures("textures/leaves.png")
         .with_transparency(0.2, 1.0)
 }
 
-// A - Agua (Water)
 pub fn create_water_material() -> Material {
     Material::new([30, 70, 200])
         .with_all_textures("textures/water.png")
-        .with_transparency(0.7, 1.33)
-        .with_reflectivity(0.2)
-}
-
-// ===== MATERIALES ADICIONALES (por si los necesitas más adelante) =====
-
-pub fn create_grass_material() -> Material {
-    Material::new([34, 139, 34])
-        .with_texture(0, "textures/grass_top.png")    // Top
-        .with_texture(1, "textures/dirt.png")         // Bottom
-        .with_texture(2, "textures/grass_side.png")   // North
-        .with_texture(3, "textures/grass_side.png")   // South
-        .with_texture(4, "textures/grass_side.png")   // East
-        .with_texture(5, "textures/grass_side.png")   // West
+        .with_transparency(0.5, 1.33)
+        .with_reflectivity(0.1)
 }
 
 pub fn create_coal_ore_material() -> Material {

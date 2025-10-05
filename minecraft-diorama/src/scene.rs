@@ -40,7 +40,14 @@ impl Scene {
             })
             .collect();
         
-        layer_files.sort();
+        // Ordenar numéricamente por el número en el nombre del archivo
+        layer_files.sort_by_key(|path| {
+            path.file_stem()
+                .and_then(|s| s.to_str())
+                .and_then(|s| s.strip_prefix("layer"))
+                .and_then(|s| s.parse::<u32>().ok())
+                .unwrap_or(0)
+        });
         
         if layer_files.is_empty() {
             println!("No se encontraron archivos .txt en layers/. Creando escena de ejemplo...");
@@ -48,12 +55,14 @@ impl Scene {
         }
         
         for (layer_index, layer_file) in layer_files.iter().enumerate() {
-            println!("Cargando capa {}: {:?}", layer_index + 1, layer_file);
+            let file_name = layer_file.file_name().unwrap().to_str().unwrap();
+            println!("Cargando capa {} desde: {}", layer_index + 1, file_name);
             let content = fs::read_to_string(layer_file)
                 .expect("Error al leer archivo de capa");
             
             let lines: Vec<&str> = content.lines().collect();
             
+            let mut blocks_in_layer = 0;
             for (z, line) in lines.iter().enumerate() {
                 for (x, ch) in line.chars().enumerate() {
                     let block_type = ch.to_string();
@@ -66,9 +75,11 @@ impl Scene {
                             z as f64,
                         );
                         scene.add_cube(Cube::new(position, 1.0, mat));
+                        blocks_in_layer += 1;
                     }
                 }
             }
+            println!("  -> {} bloques generados en esta capa", blocks_in_layer);
         }
         
         println!("Escena cargada con {} bloques", scene.cubes.len());
@@ -77,11 +88,38 @@ impl Scene {
     
     fn get_material_from_char(c: &str) -> Option<Material> {
         match c {
-            "P" => Some(create_stone_material()),
-            "A" => Some(create_water_material()),
-            "T" => Some(create_dirt_material()),
-            "M" => Some(create_wood_material()),
-            "H" => Some(create_leaves_material()),
+            "P" => {
+                println!("  [P] Creando Piedra");
+                Some(create_stone_material())
+            },
+            "A" => {
+                println!("  [A] Creando Agua");
+                Some(create_water_material())
+            },
+            "T" => {
+                println!("  [T] Creando Tierra con césped");
+                Some(create_dirt_material())
+            },
+            "M" => {
+                println!("  [M] Creando Madera");
+                Some(create_wood_material())
+            },
+            "H" => {
+                println!("  [H] Creando Hojas");
+                Some(create_leaves_material())
+            },
+            "C" => {
+                println!("  [C] Creando Mineral de Carbón");
+                Some(create_coal_ore_material())
+            },
+            "I" => {
+                println!("  [I] Creando Mineral de Hierro");
+                Some(create_iron_ore_material())
+            },
+            "D" => {
+                println!("  [D] Creando Mineral de Diamante");
+                Some(create_diamond_ore_material())
+            },
             "X" | "_" | " " => None,
             _ => {
                 println!("Advertencia: Caracter desconocido '{}'", c);

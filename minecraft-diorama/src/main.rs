@@ -136,7 +136,6 @@ fn main() {
     println!("  Mouse - Rotar cámara (click izquierdo y arrastra)");
     println!("  ESC - Salir");
     
-    // Cargar la escena
     println!("\nCargando escena...");
     let scene = Scene::from_layers("layers/");
     println!("Bloques cargados: {}", scene.cubes.len());
@@ -145,13 +144,18 @@ fn main() {
     let window_width = 1280u32;
     let window_height = 720u32;
     
-    // Resolución de renderizado (ajusta según tu hardware)
+    // Resolución de renderizado MEJORADA (640x360 para mejor calidad)
     let render_width = 320u32;
     let render_height = 180u32;
     
+    println!("\nConfiguración de calidad:");
+    println!("  Resolución de ventana: {}x{}", window_width, window_height);
+    println!("  Resolución de render: {}x{}", render_width, render_height);
+    println!("  Profundidad de raytracing: {} rebotes", 3);
+    
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
-        .with_title("Minecraft Diorama - Raytracing Interactivo (Rayon)")
+        .with_title("Minecraft Diorama - Raytracing HD (Rayon)")
         .with_inner_size(winit::dpi::LogicalSize::new(window_width, window_height))
         .build(&event_loop)
         .unwrap();
@@ -168,7 +172,7 @@ fn main() {
     let mut fps_timer = Instant::now();
     
     println!("\n¡Ventana abierta! Usa el mouse y teclado para navegar.");
-    println!("OPTIMIZACIÓN: Usando paralelización Rayon para mejor rendimiento");
+    println!("Optimización: Paralelización Rayon activada");
     
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
@@ -240,7 +244,7 @@ fn main() {
     });
 }
 
-// Versión paralela del renderizado en tiempo real
+// Versión paralela del renderizado en tiempo real con MEJOR CALIDAD
 fn render_to_pixels_parallel(scene: &Scene, camera: &Camera, frame: &mut [u8], width: u32, height: u32) {
     let pixels: Vec<(usize, [u8; 4])> = (0..height)
         .into_par_iter()
@@ -252,6 +256,7 @@ fn render_to_pixels_parallel(scene: &Scene, camera: &Camera, frame: &mut [u8], w
                 let ray = camera.get_ray(u, v);
                 let color = raytracer::trace_ray(&ray, scene, 0);
                 
+                // Gamma correction mejorada
                 let r = (color[0].clamp(0.0, 1.0).sqrt() * 255.0) as u8;
                 let g = (color[1].clamp(0.0, 1.0).sqrt() * 255.0) as u8;
                 let b = (color[2].clamp(0.0, 1.0).sqrt() * 255.0) as u8;

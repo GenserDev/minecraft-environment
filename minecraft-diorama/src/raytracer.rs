@@ -6,7 +6,7 @@ use crate::cube::HitRecord;
 use image::{RgbImage, Rgb};
 use rayon::prelude::*;
 
-const MAX_DEPTH: u32 = 2;
+const MAX_DEPTH: u32 = 2;  
 
 pub fn render(scene: &Scene, camera: &Camera, width: u32, height: u32, samples: u32) -> RgbImage {
     let mut img = RgbImage::new(width, height);
@@ -99,7 +99,7 @@ pub fn trace_ray(ray: &Ray, scene: &Scene, depth: u32) -> [f64; 3] {
         ];
         
         // Solo calcular reflexión/refracción si la profundidad es baja
-        if depth < 2 {
+        if depth < 1 {
             // Reflexión (solo si es significativa)
             if hit.material.reflectivity > 0.3 {
                 let reflected = ray.direction.reflect(&hit.normal);
