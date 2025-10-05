@@ -14,6 +14,7 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use pixels::{Pixels, SurfaceTexture};
 use std::time::Instant;
+use rayon::prelude::*;
 
 struct CameraController {
     position: Vec3,
@@ -36,8 +37,8 @@ impl CameraController {
             position,
             yaw: -135.0,
             pitch: -30.0,
-            speed: 10.0,        // Aumentado de 5.0 a 10.0
-            sensitivity: 1.0,   // Aumentado de 0.5 a 1.0
+            speed: 10.0,
+            sensitivity: 1.0,
             forward: false,
             backward: false,
             left: false,
@@ -87,10 +88,10 @@ impl CameraController {
             self.position = self.position - forward * speed;
         }
         if self.right {
-            self.position = self.position - right * speed;  // Invertido
+            self.position = self.position - right * speed;
         }
         if self.left {
-            self.position = self.position + right * speed;  // Invertido
+            self.position = self.position + right * speed;
         }
         if self.up {
             self.position = self.position + up * speed;
@@ -103,8 +104,6 @@ impl CameraController {
     fn rotate(&mut self, delta_x: f64, delta_y: f64) {
         self.yaw += delta_x * self.sensitivity;
         self.pitch -= delta_y * self.sensitivity;
-        
-        // Limitar pitch para evitar gimbal lock
         self.pitch = self.pitch.clamp(-89.0, 89.0);
     }
     
@@ -134,7 +133,7 @@ fn main() {
     println!("  W/A/S/D - Mover cámara");
     println!("  Space - Subir");
     println!("  Shift - Bajar");
-    println!("  Mouse - Rotar cámara");
+    println!("  Mouse - Rotar cámara (click izquierdo y arrastra)");
     println!("  ESC - Salir");
     
     // Cargar la escena
@@ -146,13 +145,13 @@ fn main() {
     let window_width = 1280u32;
     let window_height = 720u32;
     
-    // Resolución de renderizado (MUCHO MÁS BAJA para mejor rendimiento)
-    let render_width = 320u32;   // 1/4 de la resolución
-    let render_height = 180u32;  // Se verá pixelado pero MUCHO más rápido
+    // Resolución de renderizado (ajusta según tu hardware)
+    let render_width = 320u32;
+    let render_height = 180u32;
     
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
-        .with_title("Minecraft Diorama - Raytracing Interactivo")
+        .with_title("Minecraft Diorama - Raytracing Interactivo (Rayon)")
         .with_inner_size(winit::dpi::LogicalSize::new(window_width, window_height))
         .build(&event_loop)
         .unwrap();
@@ -165,8 +164,11 @@ fn main() {
     let mut last_frame = Instant::now();
     let mut mouse_grabbed = false;
     let mut last_mouse_pos: Option<(f64, f64)> = None;
+    let mut frame_count = 0;
+    let mut fps_timer = Instant::now();
     
     println!("\n¡Ventana abierta! Usa el mouse y teclado para navegar.");
+    println!("OPTIMIZACIÓN: Usando paralelización Rayon para mejor rendimiento");
     
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
@@ -206,21 +208,27 @@ fn main() {
                 _ => {}
             },
             Event::MainEventsCleared => {
-                // Actualizar
                 let now = Instant::now();
                 let delta_time = now.duration_since(last_frame).as_secs_f64();
                 last_frame = now;
                 
                 controller.update(delta_time);
                 
+                // Contador de FPS
+                frame_count += 1;
+                if fps_timer.elapsed().as_secs() >= 1 {
+                    println!("FPS: {}", frame_count);
+                    frame_count = 0;
+                    fps_timer = Instant::now();
+                }
+                
                 window.request_redraw();
             }
             Event::RedrawRequested(_) => {
-                // Renderizar
                 let aspect_ratio = render_width as f64 / render_height as f64;
                 let camera = controller.get_camera(aspect_ratio);
                 
-                render_to_pixels(&scene, &camera, pixels.frame_mut(), render_width, render_height);
+                render_to_pixels_parallel(&scene, &camera, pixels.frame_mut(), render_width, render_height);
                 
                 if let Err(err) = pixels.render() {
                     eprintln!("Error al renderizar: {}", err);
@@ -232,24 +240,30 @@ fn main() {
     });
 }
 
-fn render_to_pixels(scene: &Scene, camera: &Camera, frame: &mut [u8], width: u32, height: u32) {
-    for y in 0..height {
-        for x in 0..width {
-            let u = x as f64 / (width - 1) as f64;
-            let v = ((height - 1 - y) as f64) / (height - 1) as f64;
-            
-            let ray = camera.get_ray(u, v);
-            let color = raytracer::trace_ray(&ray, scene, 0);
-            
-            let r = (color[0].clamp(0.0, 1.0).sqrt() * 255.0) as u8;
-            let g = (color[1].clamp(0.0, 1.0).sqrt() * 255.0) as u8;
-            let b = (color[2].clamp(0.0, 1.0).sqrt() * 255.0) as u8;
-            
-            let idx = ((y * width + x) * 4) as usize;
-            frame[idx] = r;
-            frame[idx + 1] = g;
-            frame[idx + 2] = b;
-            frame[idx + 3] = 255;
-        }
+// Versión paralela del renderizado en tiempo real
+fn render_to_pixels_parallel(scene: &Scene, camera: &Camera, frame: &mut [u8], width: u32, height: u32) {
+    let pixels: Vec<(usize, [u8; 4])> = (0..height)
+        .into_par_iter()
+        .flat_map(|y| {
+            (0..width).into_par_iter().map(move |x| {
+                let u = x as f64 / (width - 1) as f64;
+                let v = ((height - 1 - y) as f64) / (height - 1) as f64;
+                
+                let ray = camera.get_ray(u, v);
+                let color = raytracer::trace_ray(&ray, scene, 0);
+                
+                let r = (color[0].clamp(0.0, 1.0).sqrt() * 255.0) as u8;
+                let g = (color[1].clamp(0.0, 1.0).sqrt() * 255.0) as u8;
+                let b = (color[2].clamp(0.0, 1.0).sqrt() * 255.0) as u8;
+                
+                let idx = ((y * width + x) * 4) as usize;
+                (idx, [r, g, b, 255])
+            })
+        })
+        .collect();
+    
+    // Escribir los píxeles en el frame
+    for (idx, pixel) in pixels {
+        frame[idx..idx + 4].copy_from_slice(&pixel);
     }
 }

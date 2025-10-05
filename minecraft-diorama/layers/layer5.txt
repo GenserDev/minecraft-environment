@@ -1,12 +1,12 @@
-S S S S S S S S S S S S
-S _ _ _ _ _ _ _ _ _ _ S
-S _ _ _ _ _ _ _ _ _ _ S
-S _ _ S _ _ _ _ S _ _ S
-S _ _ _ _ _ _ _ _ _ _ S
-S _ _ _ _ S _ _ _ _ _ S
-S _ _ _ _ _ _ _ _ _ _ S
-S _ _ _ _ _ _ _ _ _ _ S
-S _ _ S _ _ _ _ S _ _ S
-S _ _ _ _ _ _ _ _ _ _ S
-S _ _ _ _ _ _ _ _ _ _ S
-S S S S S S S S S S S S
+XXXXXXXXXXXX
+XXXXXXXXXXXX
+XXXXXXXXXXXX
+XXXXPPPPPXXX
+XXXXP   PXXX
+XXXXP   PXXX
+XXXP     PXX
+XXXP     PXX
+XXXP     PXX
+XXXP     PXX
+XXXP     PXX
+XXXP     PXX
